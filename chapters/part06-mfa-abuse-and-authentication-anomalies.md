@@ -94,13 +94,13 @@ Expect one row per flagged account with `prompt_count` in the same 4–12 range 
 
 **[QUERY]** QRadar AQL — this is AQL, not standard SQL; a simple grouped count over a bounded window fits a single AQL statement without needing a chained rule object.
 
-CONCEPTUAL SAMPLE — QID name and threshold illustrative; confirm your MFA log source's actual QID mapping before trusting a zero-row result as "clean."
+CONCEPTUAL SAMPLE — QID name and threshold illustrative; confirm your MFA log source's actual QID mapping before trusting a zero-row result as "clean." `HAVING` filters on the `prompt_count` alias rather than the raw `COUNT(*)`, per IBM's only documented AQL `HAVING` pattern (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html).
 ```sql
 SELECT username, COUNT(*) AS prompt_count
 FROM events
 WHERE QIDNAME(qid) ILIKE '%MFA challenge%'
 GROUP BY username
-HAVING COUNT(*) >= 4
+HAVING prompt_count >= 4
 LAST 10 MINUTES
 ```
 Expect the same 4-plus count per flagged `username` as the other languages; QRadar's DSM normalization for third-party MFA providers varies, and a denial and a timeout sometimes collapse into one QID, which can undercount the true prompt volume relative to an IdP-native log.

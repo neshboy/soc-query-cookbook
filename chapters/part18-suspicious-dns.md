@@ -108,7 +108,7 @@ CONCEPTUAL SAMPLE — assumes the Network Resolution data model is accelerated o
 
 Expected result: comparable output shape to the KQL block — one row per source/apex-domain pair with total query count, average label length, and distinct-label count. Interpretation: the same as the KQL block; a large `distinct_labels` count with low query repetition additionally suggests base32/base64-style chunking rather than simple retry traffic.
 
-**[QUERY] AQL (QRadar)** — this is AQL, not standard SQL, run against events from a DNS log source, aggregating by source IP within a 15-minute search window.
+**[QUERY] AQL (QRadar)** — this is AQL, not standard SQL, run against events from a DNS log source, aggregating by source IP within a 15-minute search window. `HAVING` filters on the `query_count`/`avg_label_len` aliases rather than the raw aggregate expressions, per IBM's only documented AQL `HAVING` pattern (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html).
 
 ```sql
 SELECT sourceip AS src_ip,
@@ -118,7 +118,7 @@ SELECT sourceip AS src_ip,
 FROM events
 WHERE LOGSOURCETYPENAME(logsourceid) ILIKE '%DNS%'
 GROUP BY sourceip
-HAVING COUNT(*) >= 200 AND AVG(LENGTH("DNS Query Name")) >= 40
+HAVING query_count >= 200 AND avg_label_len >= 40
 LAST 15 MINUTES
 ```
 CONCEPTUAL SAMPLE — `"DNS Query Name"` is a placeholder for whatever custom event property your DSM maps the query name to; this aggregates per source IP only, since AQL's string functions don't cleanly extract an apex domain from an arbitrary FQDN in one pass — group by apex domain in a second pass once a source is flagged.
@@ -315,38 +315,11 @@ Expected result and interpretation: same as above.
 | **MITRE** | No clean single-technique mapping — see [HUNTER] framing |
 | **Behavior** | A source resolves an apex domain that has never appeared anywhere in the organization's historical DNS telemetry, or appears for the first time across the entire environment within the current hunt window. |
 | **DEH cross-ref** | DEH Part 15 §4 (rare-domain / baselining approach); DEH Part 31 (Baselining) |
-| **Languages covered** | Sigma, KQL (Sentinel/Defender), SPL, AQL, YARA-L, Elastic (ES\|QL — wide-lookback shape, per DEH Appendix A5 §8) |
+| **Languages covered** | Sigma: `N/A`, see below; KQL (Sentinel/Defender), SPL, AQL, YARA-L, Elastic (ES\|QL — wide-lookback shape, per DEH Appendix A5 §8) |
 
 **[HUNTER]** "Rare domain" is a generic anomaly method, not a single attacker technique — it surfaces C2 infrastructure (T1071.004), DNS-based exfiltration staging, and fresh phishing-kit domains about equally well, which is exactly why it doesn't get one clean MITRE mapping here; T1071.004 is the most common single technique behind a true positive, stated in prose rather than forced into the header table. The value of this hunt is that it needs no prior knowledge of the specific tool or campaign — it just needs a trailing baseline long enough that "first seen" means something.
 
-**[QUERY] Sigma** — Sigma's `newterm` correlation type (added specifically for "this field value hasn't been seen before within a timeframe"), against a base DNS-query selection.
-
-```yaml
-title: DNS Apex Domain Base
-name: dns_apex_domain_base
-logsource:
-  category: dns_query
-  product: zeek
-detection:
-  selection:
-    query|endswith: '.'
-  condition: selection
----
-title: First-Seen Apex Domain
-correlation:
-  type: newterm
-  rules:
-    - dns_apex_domain_base
-  group-by:
-    - source.ip
-  value: dns.apex_domain
-  timeframe: 90d
-  condition:
-    gte: 1
-```
-CONCEPTUAL SAMPLE — `newterm` correlation-type syntax and the derived `dns.apex_domain` field are illustrative; this Sigma correlation type has limited backend support as of this writing — confirm before deploying.
-
-Expected result: a handful of genuinely new apex domains per host per day in most environments, spiking on days with new SaaS rollouts. Interpretation: a first-seen hit is a weak, high-recall signal by itself — consistent with anything from a new vendor to a new C2 domain, not diagnostic of either.
+**Sigma — N/A (no first-seen/new-term primitive).** The SigmaHQ Correlation Rules Specification defines exactly seven correlation types — `event_count`, `value_count`, `temporal`, `temporal_ordered`, `value_sum`, `value_avg`, and `value_percentile` — and none of them expresses "this value hasn't been seen before within a baseline window." A first-seen check needs a maintained historical baseline external to any single rule evaluation; that baseline gets consumed by a plain selection rule doing an anti-join against it — the same shape the KQL/SPL/AQL/ES|QL implementations below use — not by a Sigma correlation type.
 
 **[QUERY] KQL (Sentinel/Defender)** — anti-joins today's apex domains against a 90-day trailing baseline.
 
@@ -363,7 +336,7 @@ DnsEvents
 ```
 CONCEPTUAL SAMPLE — the 90-day window is illustrative; a domain your organization visits quarterly will false-positive against a 90-day baseline every time, see [FALSE POSITIVE].
 
-Expected result and interpretation: as above; KQL's anti-join makes the "never seen in the baseline window" logic explicit.
+Expected result: a handful of genuinely new apex domains per host per day in most environments, spiking on days with new SaaS rollouts; KQL's anti-join makes the "never seen in the baseline window" logic explicit. Interpretation: a first-seen hit is a weak, high-recall signal by itself — consistent with anything from a new vendor to a new C2 domain, not diagnostic of either.
 
 **[QUERY] SPL** — filters today's distinct apex domains against a lookup table maintained by a scheduled baseline-refresh search.
 
@@ -379,14 +352,14 @@ CONCEPTUAL SAMPLE — assumes a separately scheduled search populates `domain_ba
 
 Expected result and interpretation: as above.
 
-**[QUERY] AQL (QRadar)** — investigative form only. This is AQL, not standard SQL; it approximates "first seen" within a single search rather than persisting state across searches.
+**[QUERY] AQL (QRadar)** — investigative form only. This is AQL, not standard SQL; it approximates "first seen" within a single search rather than persisting state across searches. `HAVING` filters on the `first_seen` alias rather than the raw `MIN(devicetime)` expression, per IBM's documented AQL `HAVING` pattern (same citation as above).
 
 ```sql
 SELECT "DNS Query Name" AS qname, MIN(devicetime) AS first_seen
 FROM events
 WHERE LOGSOURCETYPENAME(logsourceid) ILIKE '%DNS%'
 GROUP BY "DNS Query Name"
-HAVING MIN(devicetime) > (NOW() - 86400000)
+HAVING first_seen > (NOW() - 86400000)
 LAST 90 DAYS
 ```
 CONCEPTUAL SAMPLE — validates whether a domain's *only* appearance in a 90-day AQL search window falls within the last 24 hours, which approximates first-seen without persisted state. A standing detection needs QRadar's multi-object model — a Reference Set of previously seen apex domains, updated nightly by a Building Block, with the rule then checking new queries against the set (DEH Part 27 §2–3) — rather than a single AQL search re-scanning 90 days on every run.
@@ -505,7 +478,7 @@ CONCEPTUAL SAMPLE — CIM field names illustrative.
 
 Expected result and interpretation: as above.
 
-**[QUERY] AQL (QRadar)** — this is AQL, not standard SQL; aggregates NXDOMAIN-coded events by source IP.
+**[QUERY] AQL (QRadar)** — this is AQL, not standard SQL; aggregates NXDOMAIN-coded events by source IP. `HAVING` filters on the `nx_count` alias rather than the raw `COUNT(*)` (same documented pattern as above).
 
 ```sql
 SELECT sourceip AS src_ip,
@@ -515,7 +488,7 @@ FROM events
 WHERE LOGSOURCETYPENAME(logsourceid) ILIKE '%DNS%'
   AND "DNS Response Code" = 'NXDOMAIN'
 GROUP BY sourceip
-HAVING COUNT(*) >= 50
+HAVING nx_count >= 50
 LAST 5 MINUTES
 ```
 CONCEPTUAL SAMPLE — `"DNS Response Code"` placeholder as in earlier patterns.

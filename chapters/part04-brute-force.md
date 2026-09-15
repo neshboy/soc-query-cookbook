@@ -120,11 +120,12 @@ WHERE LOGSOURCETYPENAME(devicetype) = 'Microsoft Windows Security Event Log'
   AND EVENTID = '4625'
   AND "Sub Status" = '0xC000006A'
 GROUP BY targetUser, sourceIP
+HAVING failedAttempts >= 10
 ORDER BY failedAttempts DESC
 LAST 30 MINUTES
 ```
 
-Most deployed AQL versions have no reliable post-aggregation `HAVING`-style filter, so this sorts descending instead — an analyst eyeballs the top of the list, and a confirmed threshold graduates into a Building Block once validated (DEH Part 27 §2–3). **Expected result:** The top rows name a `targetUser` with `failedAttempts` well above the rest of the list. **Interpretation:** Same reading as above; eyeballing is the tradeoff for AQL's missing aggregate filter.
+AQL natively supports a post-aggregation `HAVING` clause, filtered on the aggregate's alias — `failedAttempts` here — rather than the raw `COUNT(*)` expression (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html). `ORDER BY` is kept alongside the `HAVING` filter purely to sort the busiest offenders to the top of an already-filtered list, and a confirmed threshold graduates into a Building Block once validated (DEH Part 27 §2–3). **Expected result:** rows clearing the `failedAttempts >= 10` floor, sorted with the busiest `targetUser` first. **Interpretation:** Same reading as above — the `HAVING` clause does the filtering directly; the one case where it would stop working is if this were saved as a search feeding a scheduled report or time-series graph, which IBM's docs list as unsupported for `HAVING` — not the case for this ad hoc investigative form.
 
 **[QUERY]** **YARA-L.** Targets Google SecOps (Chronicle) UDM-normalized Windows Security events.
 

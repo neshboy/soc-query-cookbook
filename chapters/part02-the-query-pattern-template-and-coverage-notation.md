@@ -142,7 +142,7 @@ index=windows sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" E
 
 **[QUERY] — AQL (QRadar).** Investigative search only. A standing QRadar detection for this exact cross-host logic needs three chained objects — a Building Block, a Reference Set, and a Rule — not one AQL statement (DEH Part 27 §2–§3); the query below is what a hunter runs by hand to validate the pattern before anyone builds those objects.
 
-CONCEPTUAL SAMPLE — this is AQL, not standard SQL; investigative form only, and HAVING/GROUP BY support and the exact aggregate-function name vary by QRadar version — verify against your own AQL reference before running. Custom property names are illustrative and depend on your Sysmon DSM's field extraction (DEH Part 27 §3.1).
+CONCEPTUAL SAMPLE — this is AQL, not standard SQL; investigative form only. AQL natively supports a post-aggregation `HAVING` clause, filtered on the aggregate's alias rather than the raw aggregate expression (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html) — the query below uses that alias pattern. IBM's one documented limitation is that a saved search using `HAVING` isn't supported for scheduled reports or time-series graphs; that doesn't apply to this ad hoc investigative form. The exact aggregate-function name can still vary by QRadar version — verify against your own AQL reference before running. Custom property names are illustrative and depend on your Sysmon DSM's field extraction (DEH Part 27 §3.1).
 
 ```sql
 SELECT "Source Process Name", UNIQUECOUNT(sourceip) AS distinct_hosts
@@ -152,7 +152,7 @@ WHERE QIDNAME(qid) = 'Process accessed'
   AND "Granted Access" IN ('0x1010', '0x1410', '0x1438', '0x143a', '0x1fffff')
 LAST 24 HOURS
 GROUP BY "Source Process Name"
-HAVING UNIQUECOUNT(sourceip) >= 3
+HAVING distinct_hosts >= 3
 ```
 
 *Expected result:* a small result set naming a source process and its distinct source-IP count for the window, already narrowed to memory-read-capable `Granted Access` values, or an empty set on a quiet day — an empty set here is a legitimate outcome, not a query failure. *Interpretation:* the same recurrence signal as the two rows above, run as a one-off hunt query rather than a deployed Offense-producing rule; a hit here is a candidate worth promoting to the three-object standing model, not yet evidence that the standing model exists.

@@ -229,42 +229,11 @@ FROM logs-network*
 | **MITRE** | No clean single-technique mapping — see [HUNTER] framing |
 | **Behavior** | A host contacts an external IP, domain, or ASN it has not been observed contacting anywhere in a preceding baseline window. |
 | **DEH cross-ref** | DEH Part 14 §3 (Rare destinations, without the DNS layer); DEH Part 31 §3, §6 (User/host and network baselines this scoring depends on) |
-| **Languages covered** | Sigma, KQL (Sentinel/Defender), SPL, AQL, YARA-L, Elastic (ES\|QL) |
+| **Languages covered** | Sigma: `N/A`, see below; KQL (Sentinel/Defender), SPL, AQL, YARA-L, Elastic (ES\|QL) |
 
 **[HUNTER]** DEH Part 14 §3 is direct about this pattern's limitation: deployed alone as a standing alert, "has this host ever talked to this IP before" has an unworkable false-positive rate at scale, since new legitimate destinations get created constantly. Its value as a *hunt* differs from its value as a standing rule: run it on demand against a host already flagged by another pattern in this part, where "first contact, right now" is a useful corroborating fact rather than the whole basis for an alert.
 
-**[QUERY]** Sigma correlation rule using the `new_term` correlation type against a network-connection logsource, keyed on destination IP per source host.
-
-```yaml
-# CONCEPTUAL SAMPLE — baseline window and backend correlation support illustrative;
-# new_term correlation support varies by backend, verify before deploying as a standing rule.
-title: First-Seen External Destination For Host
-status: experimental
-logsource:
-  category: network_connection
-  product: zeek
-detection:
-  network_connection_selection:
-    destination.ip: '*'
-  condition: network_connection_selection
-correlation:
-  type: new_term
-  rules:
-    - network_connection_selection
-  group-by:
-    - SourceIp
-  value: DestinationIp
-  timespan: 30d
-  condition:
-    gte: 1
-falsepositives:
-  - Newly provisioned SaaS vendor, CDN edge, or partner IP the fleet has never had a reason to contact before
-level: low
-```
-
-**Plausible expected result:** on an active fleet this fires often — dozens to low hundreds of matches a day is plausible before any tuning — each naming one source host and the specific destination it contacted for the first time inside the 30-day baseline.
-
-**Interpretation:** on its own, weak evidence of anything; useful almost entirely as an enrichment fact attached to a host already flagged by `QC-19-01`, `QC-19-02`, or `QC-19-05`, exactly as DEH Part 14 §3 frames it.
+**Sigma — N/A (no first-seen/new-term primitive).** The SigmaHQ Correlation Rules Specification defines exactly seven correlation types — `event_count`, `value_count`, `temporal`, `temporal_ordered`, `value_sum`, `value_avg`, and `value_percentile` — and none of them expresses "this value hasn't been seen before within a baseline window." A first-seen check needs a maintained historical baseline external to any single rule evaluation; that baseline gets consumed by a plain selection rule doing an anti-join against it — the same shape the KQL/SPL/AQL/ES|QL implementations below use — not by a Sigma correlation type.
 
 **[QUERY]** Sentinel/Defender KQL, computing each destination's first-seen timestamp across a 30-day window and filtering to destinations first seen inside the last 24 hours for a specific host under review.
 

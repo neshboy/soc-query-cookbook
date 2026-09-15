@@ -191,7 +191,7 @@ CONCEPTUAL SAMPLE — bucket width and threshold illustrative; validate against 
 
 **Interpretation:** same read as above.
 
-**[QUERY]** The following is AQL, not standard SQL. AQL's `GROUP BY`/`HAVING` combination expresses the sum-and-filter directly in one query, without needing QRadar's multi-object Building Block chain, since this is still a single aggregation, not a stateful multi-event sequence (DEH Part 27 §2–§3).
+**[QUERY]** The following is AQL, not standard SQL. AQL's `GROUP BY`/`HAVING` combination expresses the sum-and-filter directly in one query — `HAVING` filters on the `totalBytesOut` alias rather than the raw `SUM(...)` expression, per IBM's only documented AQL `HAVING` pattern (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html) — without needing QRadar's multi-object Building Block chain, since this is still a single aggregation, not a stateful multi-event sequence (DEH Part 27 §2–§3).
 
 CONCEPTUAL SAMPLE — illustrative AQL; validate field and dataset names against your own QRadar deployment.
 
@@ -200,7 +200,7 @@ SELECT sourceip, SUM("Total Bytes") AS totalBytesOut
 FROM flows
 WHERE "Total Bytes" > 0
 GROUP BY sourceip
-HAVING SUM("Total Bytes") >= 524288000
+HAVING totalBytesOut >= 524288000
 LAST 1 DAYS
 ```
 
@@ -424,13 +424,13 @@ index=dns
 
 **[QUERY]** The following is AQL, not standard SQL.
 
-CONCEPTUAL SAMPLE — illustrative AQL; confirm your QRadar DNS DSM actually normalizes a queryable `Query` field before use.
+CONCEPTUAL SAMPLE — illustrative AQL; confirm your QRadar DNS DSM actually normalizes a queryable `Query` field before use. `HAVING` filters on the `totalQueryBytes` alias, same documented pattern as the AQL query above.
 
 ```sql
 SELECT sourceip, SUM(LENGTH("Query")) AS totalQueryBytes
 FROM dns
 GROUP BY sourceip
-HAVING SUM(LENGTH("Query")) >= 10485760
+HAVING totalQueryBytes >= 10485760
 LAST 1 DAYS
 ```
 

@@ -97,7 +97,7 @@ index=windows (EventCode=4688 OR (sourcetype=XmlWinEventLog:Sysmon EventCode=1))
 
 **Expected result:** one row per host/parent-lineage pair with a `distinct_tools` count and the raw tool list. **Interpretation:** consistent with a foothold's first orientation pass; a value of 1 with a long `window_seconds` is more likely routine scripted use.
 
-**[QUERY]** AQL (QRadar) — this is AQL, not standard SQL. AQL has no `HAVING`-equivalent post-aggregation filter (DEH Part 27 §1.3), so the distinct-tool threshold below is read from the search output by the analyst, or promoted into a standing detection using QRadar's own "at least N events... in Y minutes" Rule Test (DEH Part 27 §4) rather than a query-level filter.
+**[QUERY]** AQL (QRadar) — this is AQL, not standard SQL. AQL natively supports a post-aggregation `HAVING` clause, filtered on the aggregate's alias rather than the raw aggregate expression (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html), so the distinct-tool threshold below is filtered inline with `HAVING distinct_tools >= 2` rather than read from unfiltered output. IBM's one documented `HAVING` gap — unsupported in a saved search feeding a scheduled report or time-series graph — doesn't apply to this ad hoc investigative form; a standing detection would still promote the pattern into QRadar's own "at least N events... in Y minutes" Rule Test (DEH Part 27 §4) rather than rely on a saved `HAVING` search.
 
 CONCEPTUAL SAMPLE — custom property names illustrative; verify against your own DSM's field list before use.
 
@@ -107,10 +107,11 @@ SELECT "Computer Name" AS host, "Parent Process GUID" AS parent_lineage,
 FROM events
 WHERE "Process Name" IN ('whoami.exe','net.exe','net1.exe','systeminfo.exe')
 GROUP BY host, parent_lineage
+HAVING distinct_tools >= 2
 LAST 10 MINUTES
 ```
 
-**Expected result:** one row per host/lineage pair; the analyst scans `distinct_tools` for values of 2 or higher. **Interpretation:** same as above — this search validates the pattern exists before it's worth building the standing Rule.
+**Expected result:** one row per host/lineage pair that clears the `distinct_tools >= 2` floor. **Interpretation:** same as above — this search validates the pattern exists before it's worth building the standing Rule.
 
 **[QUERY]** YARA-L (Google SecOps) — targets UDM `PROCESS_LAUNCH` events, matched on host and parent-process path over a short window.
 
@@ -615,7 +616,7 @@ index=linux sourcetype=linux_audit type=EXECVE
 
 **Expected result:** one row per host/session pair with a `distinct_commands` count. **Interpretation:** same as above.
 
-**[QUERY]** AQL (QRadar) — this is AQL, not standard SQL. As in `QC-15-01`, AQL has no `HAVING`-equivalent post-aggregation filter, so the threshold is read from the output rather than filtered inline.
+**[QUERY]** AQL (QRadar) — this is AQL, not standard SQL. As in `QC-15-01`, AQL natively supports a post-aggregation `HAVING` clause filtered on the aggregate's alias (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html), so the threshold below is filtered inline with `HAVING distinct_commands >= 3` rather than read from unfiltered output.
 
 CONCEPTUAL SAMPLE — custom property names illustrative.
 
@@ -625,10 +626,11 @@ FROM events
 WHERE "Process Name" IN ('id','whoami','groups','uname','ip','ifconfig')
    OR "Command Line" ILIKE '%passwd%' OR "Command Line" ILIKE '%sudo -l%'
 GROUP BY host, session
+HAVING distinct_commands >= 3
 LAST 5 MINUTES
 ```
 
-**Expected result:** a row per host/session pair; the analyst scans `distinct_commands` for values of 3 or higher. **Interpretation:** same as above.
+**Expected result:** a row per host/session pair that clears the `distinct_commands >= 3` floor. **Interpretation:** same as above.
 
 **[QUERY]** YARA-L (Google SecOps) — targets UDM `PROCESS_LAUNCH` events, matched on host over a short window.
 

@@ -105,14 +105,14 @@ Plausible expected result: `accounts` returns as a multivalue field capped by SP
 
 **[QUERY]** QRadar AQL (not standard SQL) against the `events` view.
 
-CONCEPTUAL SAMPLE — `UNIQUECOUNT()` is AQL's distinct-count function, not SQL's `COUNT(DISTINCT)`; confirm the field mapping for `substatus` against your Windows log source extension.
+CONCEPTUAL SAMPLE — `UNIQUECOUNT()` is AQL's distinct-count function, not SQL's `COUNT(DISTINCT)`; confirm the field mapping for `substatus` against your Windows log source extension. `HAVING` filters on the `distinct_accounts` alias rather than the raw aggregate expression, per IBM's only documented AQL `HAVING` pattern (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html).
 
 ```sql
 SELECT sourceip, UNIQUECOUNT(username) AS distinct_accounts
 FROM events
 WHERE eventid = '4625' AND substatus = '0xC000006A'
 GROUP BY sourceip
-HAVING UNIQUECOUNT(username) >= 15
+HAVING distinct_accounts >= 15
 LAST 1 HOURS
 ```
 
@@ -250,7 +250,7 @@ FROM events
 WHERE UTF8(clientappused) IN ('IMAP4','POP3','Exchange ActiveSync','Other clients')
   AND resulttype = '50126'
 GROUP BY sourceip
-HAVING UNIQUECOUNT(username) >= 12
+HAVING distinct_users >= 12
 LAST 1 HOURS
 ```
 
@@ -382,7 +382,7 @@ SELECT sourceasn,
 FROM events
 WHERE resulttype = '50126'
 GROUP BY sourceasn
-HAVING UNIQUECOUNT(username) >= 25 AND UNIQUECOUNT(sourceip) >= 10
+HAVING distinct_users >= 25 AND distinct_ips >= 10
 LAST 6 HOURS
 ```
 

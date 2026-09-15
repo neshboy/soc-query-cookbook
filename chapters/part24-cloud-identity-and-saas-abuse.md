@@ -428,13 +428,13 @@ Plausible expected result and interpretation: unchanged from the KQL form.
 
 **[QUERY]** QRadar AQL — this is AQL, not standard SQL. Single grouped-aggregation query; whether this returns anything meaningful depends entirely on whether the ingested identity feed carries a session identifier at all.
 
-CONCEPTUAL SAMPLE — assumes a custom identity-platform log source extension exposes `session_id` and a device-fingerprint field as queryable columns, which most default DSMs do not.
+CONCEPTUAL SAMPLE — assumes a custom identity-platform log source extension exposes `session_id` and a device-fingerprint field as queryable columns, which most default DSMs do not. `HAVING` filters on the `distinct_ips`/`distinct_devices` aliases rather than the raw `UNIQUECOUNT(...)` expressions, per IBM's only documented AQL `HAVING` pattern (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html).
 ```sql
 SELECT session_id, UNIQUECOUNT(sourceip) AS distinct_ips, UNIQUECOUNT(devicefingerprint) AS distinct_devices
 FROM events
 WHERE QIDNAME(qid) = 'Session token used'
 GROUP BY session_id
-HAVING UNIQUECOUNT(sourceip) > 1 OR UNIQUECOUNT(devicefingerprint) > 1
+HAVING distinct_ips > 1 OR distinct_devices > 1
 LAST 8 HOURS
 ```
 Plausible expected result: an empty set on most deployments, since the underlying fields are rarely present without a custom extension. Interpretation: a persistently empty result is more likely "not ingested" than "no replay occurred" — confirm the field mapping exists before trusting a clean run.

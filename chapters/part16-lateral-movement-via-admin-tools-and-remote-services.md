@@ -540,7 +540,7 @@ index=wineventlog EventCode=4624 Logon_Type=10
 
 Plausible expected result: unchanged from the KQL entry. Interpretation: unchanged.
 
-**[QUERY]** AQL, QRadar — this is AQL, not standard SQL. Aggregation with `GROUP BY`/`HAVING` is natively supported here, unlike the joined shapes in `QC-16-02`/`QC-16-06`.
+**[QUERY]** AQL, QRadar — this is AQL, not standard SQL. Aggregation with `GROUP BY`/`HAVING` is natively supported here, unlike the joined shapes in `QC-16-02`/`QC-16-06` — filtered on the aggregate's alias, per IBM's only documented `HAVING` pattern (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html). The one documented gap is that a saved search using `HAVING` isn't supported for a scheduled report or time-series graph — irrelevant to this ad hoc investigative form, but worth knowing before saving this query as either.
 
 CONCEPTUAL SAMPLE — custom property name for logon type illustrative.
 
@@ -550,7 +550,7 @@ FROM events
 WHERE QIDNAME(qid) = 'An account was successfully logged on'
   AND "Logon Type" = 10
 GROUP BY sourceip, username
-HAVING UNIQUECOUNT(destinationip) >= 8
+HAVING distinct_hosts >= 8
 LAST 1 HOURS
 ```
 

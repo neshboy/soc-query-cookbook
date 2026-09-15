@@ -402,11 +402,11 @@ SELECT hostname, username, UNIQUECOUNT("command line") AS distinct_commands,
 FROM events
 WHERE "process name" IN ('net.exe','net1.exe','nltest.exe','whoami.exe','dsquery.exe','arp.exe')
 GROUP BY hostname, username
-HAVING UNIQUECOUNT("command line") >= 5 AND backup_keyword_hits >= 1
+HAVING distinct_commands >= 5 AND backup_keyword_hits >= 1
 LAST 15 MINUTES
 ```
 
-CONCEPTUAL SAMPLE — assumes the same process-creation DSM extension as QC-23-01's AQL form; the conditional `SUM(CASE ...)` aggregate is illustrative syntax, not a verified AQL construct — validate against your own QRadar version.
+CONCEPTUAL SAMPLE — assumes the same process-creation DSM extension as QC-23-01's AQL form; the conditional `SUM(CASE ...)` aggregate is illustrative syntax, not a verified AQL construct — validate against your own QRadar version. `HAVING` filters on the `distinct_commands`/`backup_keyword_hits` aliases rather than the raw aggregate expressions, per IBM's only documented AQL `HAVING` pattern (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html).
 
 Plausible expected result and interpretation: the same shape as the other surfaces above.
 

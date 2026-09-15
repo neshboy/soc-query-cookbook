@@ -513,14 +513,14 @@ CONCEPTUAL SAMPLE — same threshold caveat as the Sigma form; raise `maxvalues`
 
 Plausible expected result and interpretation: unchanged from the KQL form.
 
-**[QUERY]** GCP Cloud Audit Logs via QRadar AQL (not standard SQL).
+**[QUERY]** GCP Cloud Audit Logs via QRadar AQL (not standard SQL). `HAVING` filters on the `distinct_ops` alias rather than the raw `UNIQUECOUNT(...)` expression, per IBM's only documented AQL `HAVING` pattern (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html).
 
 ```sql
 SELECT "Principal Email", UNIQUECOUNT("Method Name") AS distinct_ops
 FROM events
 WHERE "Method Name" ILIKE '%.list%' OR "Method Name" ILIKE '%.get%'
 GROUP BY "Principal Email"
-HAVING UNIQUECOUNT("Method Name") >= 20
+HAVING distinct_ops >= 20
 LAST 1 HOURS
 ```
 

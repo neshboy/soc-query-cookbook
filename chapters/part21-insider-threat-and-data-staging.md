@@ -303,14 +303,14 @@ Plausible expected result: unchanged from the KQL block, in table form. Interpre
 
 **[QUERY] AQL** — this is AQL, not standard SQL.
 
-CONCEPTUAL SAMPLE — raw payload substring matching is a coarse substitute for a parsed `ResourceAttributes` field; confirm your log source extension exposes it directly if higher precision is needed.
+CONCEPTUAL SAMPLE — raw payload substring matching is a coarse substitute for a parsed `ResourceAttributes` field; confirm your log source extension exposes it directly if higher precision is needed. `HAVING` filters on the `writeEvents` alias rather than the raw `COUNT(*)`, per IBM's only documented AQL `HAVING` pattern (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html).
 ```sql
 SELECT username, sourcehostname AS "Host", COUNT(*) AS writeEvents
 FROM events
 WHERE "EventID" = 4663
   AND UTF8(payload) ILIKE '%RemovableStorage%'
 GROUP BY username, sourcehostname
-HAVING COUNT(*) >= 50
+HAVING writeEvents >= 50
 LAST 15 MINUTES
 ```
 Plausible expected result: a small result set, one row per offending user/host pair. Interpretation: unchanged — this aggregation is fully expressible as a single AQL search, no multi-object build required.
@@ -422,7 +422,7 @@ WHERE "EventID" = 11
   AND "File Path" NOT ILIKE '%\Program Files\%'
   AND "File Path" NOT ILIKE '%\Windows\%'
 GROUP BY sourcehostname, "File Path"
-HAVING COUNT(*) >= 75
+HAVING createEvents >= 75
 LAST 10 MINUTES
 ```
 Plausible expected result: a coarser result set than the other languages, since each row keys on a full file path rather than a shared parent directory. Interpretation: manually group the returned rows by common directory prefix before trusting the count.

@@ -99,7 +99,7 @@ Expected result and interpretation: identical in shape to the KQL version above 
 
 **[QUERY]** This is AQL, QRadar's query language, not standard SQL, despite the fence tag. The same aggregation, expressed with QRadar's `UNIQUECOUNT`.
 
-CONCEPTUAL SAMPLE — property names illustrative; validate against your own DSM mapping for Windows Security events.
+CONCEPTUAL SAMPLE — property names illustrative; validate against your own DSM mapping for Windows Security events. `HAVING` filters on the `distinct_spns` alias rather than the raw aggregate expression, per IBM's only documented AQL `HAVING` pattern (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html).
 
 ```sql
 SELECT "Target Username" AS requester,
@@ -107,8 +107,8 @@ SELECT "Target Username" AS requester,
 FROM events
 WHERE EVENTID = '4769'
 GROUP BY "Target Username"
+HAVING distinct_spns >= 8
 LAST 10 MINUTES
-HAVING UNIQUECOUNT("Service Name") >= 8
 ```
 
 Expected result: a short requester/count result set, refreshed each time the search runs, with a count profile comparable to the KQL/SPL versions. Interpretation: QRadar's aggregation model handles this threshold shape natively — no Building Block/Reference Set escalation needed for the investigative version.

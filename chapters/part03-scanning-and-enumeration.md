@@ -73,21 +73,18 @@ index=zeek sourcetype=corelight_conn
 
 Expected result: one row per (`id.orig_h`, `id.resp_h`, bucket) with `distinct_ports` above 20 and a `ports_touched` multivalue field a triager can scan for a full-range pattern (1–1024) versus a short, targeted list. Interpretation: the same as above — this is a plausible vertical-scan hit against that specific host, not yet a confirmed attacker.
 
-The following targets QRadar's Ariel Query Language (AQL) — not standard SQL — against QRadar's Network Flow (QFlow/NetFlow) data source; AQL's `HAVING`-equivalent support on an aggregate alias is inconsistent across versions, so the threshold is applied in an outer `SELECT` over the aggregated subquery rather than assumed to work inline.
+The following targets QRadar's Ariel Query Language (AQL) — not standard SQL — against QRadar's Network Flow (QFlow/NetFlow) data source. AQL natively supports a post-aggregation `HAVING` clause when it filters on the aggregate's alias rather than the raw aggregate expression (IBM Documentation, "AQL data aggregation functions," QRadar SIEM 7.4/7.5: https://www.ibm.com/docs/en/qsip/7.5?topic=SS42VS_7.5/com.ibm.qradar.doc/r_aql_aggregate_functions.html), so the threshold below is applied directly with `HAVING distinct_ports > 20` rather than wrapped in an outer `SELECT` over a subquery. (IBM's one documented `HAVING` gap — unsupported in a saved search feeding a scheduled report or time-series graph — doesn't apply to this ad hoc investigative search.)
 
 CONCEPTUAL SAMPLE — illustrative AQL; validate field and dataset names against your own QRadar deployment.
 
 ```sql
-SELECT src_ip, dst_ip, distinct_ports
-FROM (
-    SELECT sourceip AS src_ip, destinationip AS dst_ip,
-           UNIQUECOUNT(destinationport) AS distinct_ports
-    FROM events
-    WHERE devicetype = 'NetworkFlow'
-    GROUP BY sourceip, destinationip
-    LAST 10 MINUTES
-)
-WHERE distinct_ports > 20
+SELECT sourceip AS src_ip, destinationip AS dst_ip,
+       UNIQUECOUNT(destinationport) AS distinct_ports
+FROM events
+WHERE devicetype = 'NetworkFlow'
+GROUP BY sourceip, destinationip
+HAVING distinct_ports > 20
+LAST 10 MINUTES
 ```
 
 Expected result: a small result set of `(src_ip, dst_ip, distinct_ports)` rows for the last 10 minutes of flow data, `distinct_ports` above 20. Interpretation: same as the KQL/SPL versions; treat this ad hoc AQL search as the validation step before building the three-object Building Block/Reference Set/Rule chain DEH Part 27 §2–§3 describes if this graduates to a standing QRadar rule.
@@ -186,21 +183,18 @@ index=zeek sourcetype=corelight_conn
 
 Expected result: one row per (`id.orig_h`, `id.resp_p`, bucket) exceeding 15 distinct `id.resp_h` values, with the touched-host list attached. Interpretation: same as the KQL version.
 
-The following is QRadar AQL, not standard SQL, against the Network Flow dataset, with the threshold applied over an aggregated subquery for the same `HAVING`-portability reason as QC-03-01.
+The following is QRadar AQL, not standard SQL, against the Network Flow dataset. As at QC-03-01, AQL's native `HAVING` clause is applied directly here via the aggregate's alias, per IBM's documented pattern; the scheduled-report/time-series-graph limitation noted there doesn't apply to this ad hoc investigative search either.
 
 CONCEPTUAL SAMPLE — illustrative AQL; validate field and dataset names against your own QRadar deployment.
 
 ```sql
-SELECT src_ip, dst_port, distinct_hosts
-FROM (
-    SELECT sourceip AS src_ip, destinationport AS dst_port,
-           UNIQUECOUNT(destinationip) AS distinct_hosts
-    FROM events
-    WHERE devicetype = 'NetworkFlow'
-    GROUP BY sourceip, destinationport
-    LAST 10 MINUTES
-)
-WHERE distinct_hosts > 15
+SELECT sourceip AS src_ip, destinationport AS dst_port,
+       UNIQUECOUNT(destinationip) AS distinct_hosts
+FROM events
+WHERE devicetype = 'NetworkFlow'
+GROUP BY sourceip, destinationport
+HAVING distinct_hosts > 15
+LAST 10 MINUTES
 ```
 
 Expected result: `(src_ip, dst_port, distinct_hosts)` rows above 15 for the last 10 minutes. Interpretation: same claim as above; validate before promoting to a standing three-object QRadar rule.
