@@ -1,0 +1,14 @@
+A SOC Threat Hunting Query Cookbook. Built for hunters. Free. Public.
+
+One attacker behavior isn't one query language's problem. It's six.
+
+Password spraying → MFA abuse → PowerShell and LOLBins → lateral movement → DNS tunnelling and C2 beaconing → exfiltration → ransomware precursors → cloud identity and infrastructure abuse.
+
+Every pattern in this book runs the same behavior through Sigma, KQL, SPL, AQL, YARA-L, and EQL, side by side — so a hunter under time pressure gets a starting query in the language they already have open, not a reason to learn five more first.
+
+And when one of those six genuinely can't express a pattern, the book says so instead of faking it. The first release shipped a Sigma rule using a "newterm" correlation type built to catch a first-seen domain. It doesn't exist — SigmaHQ's spec defines exactly seven correlation types, and none of them is a first-seen primitive. We pulled it and marked Sigma an honest N/A. Same standard applied to EQL: its sequence stage matches a fixed number of stages, not "N or more" of one stage — so a 5-plus-failures pattern gets five explicit stages, labeled a close analog, not a guaranteed equivalent.
+
+Inside: 28 parts, ~140 named query patterns, roughly 800 individual query blocks, real MITRE ATT&CK mapping, named false-positive drivers, pivot logic, and every single query labeled an honest CONCEPTUAL SAMPLE by default — built to be adapted against your own schema and baseline, not copied in as a deployed detection.
+
+Full PDF: https://raw.githubusercontent.com/neshboy/soc-query-cookbook/master/SOC_Threat_Hunting_Query_Cookbook.pdf
+Repo: https://github.com/neshboy/soc-query-cookbook
