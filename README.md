@@ -44,6 +44,7 @@ python add_watermark.py
 ## Repository layout
 
 - `chapters/` — the 28 parts, Markdown source of record. `appendices/` is reserved for the 5 appendix bundles named in `BOOK-INDEX.md`'s Appendix Table; none are drafted yet.
+- `REFERENCES.md` — full metadata for every external source cited inline in `chapters/` (vendor documentation, standards specifications, and MITRE ATT&CK), per `STYLE-GUIDE.md` §12.
 - `assets/diagrams/` — rendered Mermaid SVGs (Part 27's five hunt-chain flowcharts).
 - `build/` — the build/watermark tooling above.
 - `BOOK-INDEX.md`, `STYLE-GUIDE.md` — cross-cutting project documentation.

@@ -444,7 +444,7 @@ rule qc_06_04_success_after_failure_burst {
 ```
 A match binds five or more `$fail` events and one later `$success` event to the same `$user` inside the 15-minute match window — the same claim as the KQL/SPL results, expressed natively rather than through a self-join.
 
-**[QUERY]** Elastic EQL — the natural surface for an ordered, entity-joined sequence; expressed here as five explicit failure stages rather than a true dynamic count, since EQL `sequence` matches a fixed number of stages, not "N or more" of one stage.
+**[QUERY]** Elastic EQL — the natural surface for an ordered, entity-joined sequence; expressed here as five explicit failure stages rather than a true dynamic count, since EQL `sequence` matches a fixed number of stages, not "N or more" of one stage (Elastic, "EQL syntax reference," Elastic Docs: https://www.elastic.co/docs/reference/query-languages/eql/eql-syntax).
 
 CONCEPTUAL SAMPLE — illustrative EQL; five fixed failure stages matching the five-attempt threshold, see the note below.
 ```eql

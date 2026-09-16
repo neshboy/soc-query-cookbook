@@ -378,7 +378,7 @@ rule qc_07_03_dcsync_noninventoried {
 
 Expected result and interpretation: same shape as the Sigma version — the exclusion-list check works, the keyed IP-mismatch enrichment is out of scope for one rule here too.
 
-**[QUERY]** This is a static-table enrichment against a maintained inventory, not an ordered event sequence — ES|QL's `LOOKUP JOIN` expresses the inventory check more directly than EQL's `sequence` stage, which has no join of this shape (DEH Appendix A5 §4).
+**[QUERY]** This is a static-table enrichment against a maintained inventory, not an ordered event sequence — ES|QL's `LOOKUP JOIN` expresses the inventory check more directly than EQL's `sequence` stage, which has no join of this shape (DEH Appendix A5 §4). `LOOKUP JOIN` adds columns from a lookup index by matching a shared join-field value, exactly the inventory-check shape this pattern needs (Elastic, "LOOKUP JOIN," ES|QL command reference, Elastic Docs: https://www.elastic.co/docs/reference/query-languages/esql/commands/lookup-join).
 
 CONCEPTUAL SAMPLE — field names illustrative for a generic winlogbeat mapping.
 
