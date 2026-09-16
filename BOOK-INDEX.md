@@ -1,7 +1,7 @@
 # The SOC Threat Hunting Query Cookbook
 
 **BOOK-INDEX.md — canonical part list and appendix list.**
-**Status:** Draft architecture, Volume 4 of the NESHBOY SOC Professional Library. Companion volumes: *SIGNAL TO ACTION: The Complete SOC Playbook Handbook* (`github.com/neshboy/soc-playbook-handbook`), *The Detection Engineering Handbook V2* (`github.com/neshboy/detection-engineering-handbook`), and *The SOC Manager's Operating Handbook* (this series' Volume 3, local at `C:\Users\User\projects\soc-manager-handbook`).
+**Status:** Draft architecture, part of the NESHBOY SOC Professional Library. Companion volumes: *SIGNAL TO ACTION: The Complete SOC Playbook Handbook* (`github.com/neshboy/soc-playbook-handbook`), *The Detection Engineering Handbook V2* (`github.com/neshboy/detection-engineering-handbook`), and *The SOC Manager's Operating Handbook* (this series' Volume 3, local at `C:\Users\User\projects\soc-manager-handbook`).
 
 ## What this book is
 
